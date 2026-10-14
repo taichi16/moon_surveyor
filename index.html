@@ -112,12 +112,24 @@
 
         <!-- 摺疊式圖例小工具 (左下角，點擊展開) -->
         <div class="map-legend-dock">
-          <button id="btn-toggle-legend" class="legend-pill-btn">🏷️ 射線圖例</button>
+          <button id="btn-toggle-legend" class="legend-pill-btn">🏷️ 射線圖例說明</button>
           <div id="map-legend-popover" class="legend-popover hidden">
-            <div class="legend-row"><span class="legend-indicator ray-color-rise"></span> 🌕 月出方位角</div>
-            <div class="legend-row"><span class="legend-indicator ray-color-set"></span> 🌘 月沒方位角</div>
-            <div class="legend-row"><span class="legend-indicator ray-color-moon"></span> 🌙 即時月球位置</div>
-            <div class="legend-row"><span class="legend-indicator ray-color-sun"></span> ☀️ 即時太陽位置</div>
+            <div class="legend-row">
+              <span class="legend-indicator ray-color-rise"></span> 
+              <div><b>🟡 金黃虛線：當日月出方位</b><br/><small style="color:#94a3b8;">今天月球升起方向 (山頭/地標月出取景)</small></div>
+            </div>
+            <div class="legend-row">
+              <span class="legend-indicator ray-color-set"></span> 
+              <div><b>🔴 橙紅虛線：當日月沒方位</b><br/><small style="color:#94a3b8;">今天月球落下方向 (海面/夕暮月落取景)</small></div>
+            </div>
+            <div class="legend-row">
+              <span class="legend-indicator ray-color-moon"></span> 
+              <div><b>🔵 青藍實線：月球即時方向</b><br/><small style="color:#94a3b8;">隨底部時光機滑桿轉動 (標註仰角)</small></div>
+            </div>
+            <div class="legend-row">
+              <span class="legend-indicator ray-color-sun"></span> 
+              <div><b>🟠 琥珀實線：太陽即時方向</b><br/><small style="color:#94a3b8;">隨底部時光機滑桿轉動 (標註仰角)</small></div>
+            </div>
           </div>
         </div>
       </div>
@@ -151,24 +163,39 @@
       <div id="timeline-slider-root"></div>
     </footer>
 
-    <!-- 資料集說明與手動更新彈出視窗 -->
+    <!-- 系統功能使用指南與資料更新設定 (Modal) -->
     <div id="modal-info" class="modal-backdrop hidden">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>🌕 系統說明與資料同步設定</h3>
+          <h3>📖 系統功能與使用說明</h3>
           <button id="btn-close-modal" class="modal-close-btn">✕</button>
         </div>
-        <div class="modal-body">
-          <h4>📌 資料來源</h4>
-          <p>本系統整合中華民國<b>交通部中央氣象署</b>於政府資料開放平臺所發布之<b>「月出月沒時刻」（A-B0063-001 / ID: 75381）</b>，涵蓋全臺 22 縣市每年每日的月出、過中天、月沒與方位角資料。</p>
-          
-          <h4>⚡ 自動更新機制說明</h4>
+        <div class="modal-body modal-scroll-body">
+          <h4>🗺️ 地圖射線含義 (風景攝影取景必看)</h4>
           <ul>
-            <li><b>每年自動檢測</b>：系統內建自動更新引擎，每年歲末年終或超過 30 天未連線時，會於背景向中央氣象署確認最新發布的年度資料並自動存入離線快取。</li>
-            <li><b>零中斷離線計算</b>：即使在無網路環境（如合歡山野外、離島暗空），系統的天文力學引擎仍可無縫計算精確至秒的即時仰角與方位角。</li>
+            <li><b>🟡 金黃色虛線 (月出方位)</b>：今天月球由地平線升起時的固定方位（中央氣象署官方預報）。若要拍攝「月亮從建築地標或山頭剛升起」的大景，對準這條線的方向即可！</li>
+            <li><b>🔴 橙紅色虛線 (月沒方位)</b>：今天月球落入地平線時的固定方位。拍攝海面或夕色月落請對準此方向。</li>
+            <li><b>🔵 青藍色實線 (即時月球)</b>：月球在所選時刻的真實方位與仰角，會隨底部的「24小時時光機滑桿」轉動。仰角負數代表位於地平線下。</li>
+            <li><b>🟠 琥珀色實線 (即時太陽)</b>：太陽在所選時刻的方位與高度角。</li>
           </ul>
 
-          <h4>🔄 手動觸發更新</h4>
+          <h4>✨ 四大專業功能模式操作指南</h4>
+          <ul>
+            <li><b>🗺️ 互動地圖</b>：點擊地圖任意處可移動觀測點；右上角可切換「暗夜/衛星/街道」底圖。</li>
+            <li><b>🧭 天文羅盤</b>：點選「📱 啟用手機指南針」，手機轉向哪，羅盤就轉向哪，立體呈現天球仰角同心環（0°~90°）與全天日月運行弧線。</li>
+            <li><b>📷 AR 實景</b>：開啟相機後將手機對準天空，直接在相機畫面疊加月球今天劃過天空的虛擬軌跡，現場預判月亮是否會被大樓擋住。</li>
+            <li><b>📊 星曆與月相</b>：3D 月相球體陰影、月齡天數、氣象署 75381 官方三年預報對照卡、以及攝影晨昏黃金時段（Golden Hour）。</li>
+            <li><b>⏱️ 24 小時時光機</b>：滑動底部時間軌道，隨選任意時刻推演；按「▶ 播放推演」可縮時模擬全日天體運轉。</li>
+          </ul>
+
+          <h4>📲 如何在手機以原生 App 全螢幕使用？</h4>
+          <ul>
+            <li><b>iPhone Safari</b>：點擊瀏覽器底部的 <b>分享按鈕 (📤)</b> ➔ 點選 <b>「加入主畫面」</b> ➔ 點選右上角「新增」。</li>
+            <li><b>Android Chrome</b>：點選右上角 <b>選單 (⋮)</b> ➔ 點選 <b>「安裝應用程式」</b> 或 <b>「加到主畫面」</b>。</li>
+          </ul>
+
+          <h4>📌 官方資料來源與每年自動更新</h4>
+          <p>整合交通部中央氣象署開放資料集<b>「月出月沒時刻」（A-B0063-001 / ID: 75381）</b>。系統內建自動更新引擎，跨年或超過 30 天未檢查時，會於背景自動向氣象署拉取最新年度資料並更新離線快取。</p>
           <button id="btn-manual-sync-cwa" class="primary-gradient-btn">
             立即檢查並同步最新氣象署資料
           </button>
