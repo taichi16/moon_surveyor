@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="skyGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#f6c343"/>
+      <stop offset="100%" stop-color="rgba(246, 195, 67, 0)"/>
+    </radialGradient>
+    <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#skyGrad)"/>
+
+  <!-- Compass Grid -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" stroke-dasharray="6 6"/>
+  <circle cx="256" cy="256" r="120" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <circle cx="256" cy="256" r="60" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-dasharray="4 4"/>
+  
+  <line x1="256" y1="56" x2="256" y2="456" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <line x1="56" y1="256" x2="456" y2="256" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+
+  <!-- Orbital Trajectory Arc -->
+  <path d="M 96 360 C 140 140, 372 140, 416 360" fill="none" stroke="url(#orbitGrad)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Glowing Moon -->
+  <circle cx="256" cy="180" r="54" fill="url(#moonGlow)"/>
+  <circle cx="256" cy="180" r="46" fill="#f8fafc"/>
+  <path d="M 256 134 A 46 46 0 0 1 256 226 A 28 46 0 0 0 256 134" fill="#cbd5e1"/>
+
+  <!-- Needle / Cardinal N -->
+  <polygon points="256,66 244,96 268,96" fill="#ef4444"/>
+</svg>

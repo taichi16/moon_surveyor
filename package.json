@@ -1,0 +1,19 @@
+{
+  "name": "moon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "update-data": "python3 scripts/update_cwa_data.py"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "suncalc": "^2.1.1"
+  }
+}
