@@ -90,11 +90,14 @@ npm run dev
 npm run update-data
 ```
 
-### 5. 生產環境打包
-```bash
-npm run build
-```
-編譯產物將輸出至 `dist/` 資料夾，可直接部署至 GitHub Pages、Vercel 或 Cloudflare Pages。
+### 5. 一鍵啟用 GitHub Pages (手機專屬線上網址)
+
+本專案已內建 GitHub Actions 自動化部署工作流（`.github/workflows/deploy.yml`）：
+1. 前往 GitHub 儲存庫頁面：[https://github.com/taichi16/moon_surveyor](https://github.com/taichi16/moon_surveyor)
+2. 點選上方分頁 **「Settings」** ➔ 左側選單 **「Pages」**。
+3. 在 **「Build and deployment」>「Source」** 下拉選單中，切換為 **`GitHub Actions`**。
+4. 儲存後 GitHub 就會自動編譯並部署，約 1 分鐘後即可在手機透過專屬 HTTPS 網址連線使用：
+   **`https://taichi16.github.io/moon_surveyor/`**
 
 ---
 

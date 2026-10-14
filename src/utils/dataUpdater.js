@@ -54,7 +54,9 @@ class CwaDataUpdater {
   // 載入預載緊湊型資料
   async loadBundledData() {
     try {
-      const res = await fetch('/data/cwa_moon_compact.json');
+      const baseUrl = import.meta.env.BASE_URL || './';
+      const dataUrl = baseUrl.endsWith('/') ? `${baseUrl}data/cwa_moon_compact.json` : `${baseUrl}/data/cwa_moon_compact.json`;
+      const res = await fetch(dataUrl);
       if (res.ok) {
         const data = await res.json();
         this.memoryData = data;

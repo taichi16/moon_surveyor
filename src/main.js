@@ -469,7 +469,8 @@ class MoonSurveyorApp {
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        const swUrl = (import.meta.env.BASE_URL || './').replace(/\/$/, '') + '/sw.js';
+        navigator.serviceWorker.register(swUrl).catch(() => {});
       });
     }
   }
