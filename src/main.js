@@ -15,18 +15,15 @@ import { TimelineSlider } from './components/TimelineSlider.js';
 
 class MoonSurveyorApp {
   constructor() {
-    // 預設台北信義區
     this.lat = 25.0375;
     this.lng = 121.5637;
     this.currentCounty = '臺北市';
-    this.currentLocationName = '臺北市 (信義/象山)';
+    this.currentLocationName = '臺北市 (信義)';
 
-    // 日期與時間狀態
     const now = new Date();
     this.currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     this.currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 視圖實例
     this.mapView = null;
     this.compassView = null;
     this.arView = null;
@@ -34,30 +31,33 @@ class MoonSurveyorApp {
     this.timelineSlider = null;
 
     this.activeView = 'map';
+    this.cachedTrajectories = null;
   }
 
   async init() {
     console.log('[MoonSurveyorApp] 啟動應用程式...');
 
-    // 1. 初始化資料庫更新器
-    await cwaUpdater.init();
+    // 1. 先初始化視圖 (確保 Leaflet 與 DOM 容器即刻掛載，不等待非同步網路)
+    this.initViews();
+
+    // 2. 綁定頂部控制項與地點/日期事件
+    this.setupHeaderEvents();
+    this.setupViewTabs();
+    this.setupLocationDrawer();
+    this.setupModalEvents();
+
+    // 3. 初次更新日期顯示與天文計算
+    this.updateDateDisplay();
+    this.recalculateAndDispatch();
+
+    // 4. 非同步載入氣象署資料庫
     cwaUpdater.onUpdate((info) => {
       this.showToast(`🎉 氣象署資料自動更新成功！涵蓋至 ${info.endDate}`);
       this.recalculateAndDispatch();
     });
-
-    // 2. 初始化各視圖元件
-    this.initViews();
-
-    // 3. 綁定頂部控制項與地點/日期事件
-    this.setupHeaderEvents();
-    this.setupViewTabs();
-    this.setupDropdownMenus();
-    this.setupModalEvents();
-
-    // 4. 初次計算與渲染
-    this.updateDateInputDisplay();
-    this.recalculateAndDispatch();
+    cwaUpdater.init().then(() => {
+      this.recalculateAndDispatch();
+    });
 
     // 5. 註冊離線 Service Worker
     this.registerServiceWorker();
@@ -70,19 +70,26 @@ class MoonSurveyorApp {
       this.lng = newLng;
       const nearest = findNearestCounty(newLat, newLng);
       this.currentCounty = nearest.name;
-      this.currentLocationName = `${nearest.name} (自訂座標)`;
-      document.getElementById('input-location-search').value = this.currentLocationName;
+      this.currentLocationName = `${nearest.name} (自訂點)`;
+      this.updateLocationPillText();
       this.recalculateAndDispatch();
     });
     this.mapView.init(this.lat, this.lng);
 
     // 地圖底圖切換按鈕
-    document.querySelectorAll('.layer-pill-btn').forEach((btn) => {
+    document.querySelectorAll('.layer-tab-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.layer-pill-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.layer-tab-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         this.mapView.switchTile(e.target.dataset.layer);
       });
+    });
+
+    // 地圖圖例切換按鈕
+    const legendBtn = document.getElementById('btn-toggle-legend');
+    const legendPop = document.getElementById('map-legend-popover');
+    legendBtn?.addEventListener('click', () => {
+      legendPop?.classList.toggle('hidden');
     });
 
     // 羅盤視圖
@@ -102,7 +109,7 @@ class MoonSurveyorApp {
     // 星曆視圖
     this.ephemerisView = new EphemerisView('ephemeris-main-container', (jumpDate) => {
       this.currentDate = new Date(jumpDate.getFullYear(), jumpDate.getMonth(), jumpDate.getDate());
-      this.updateDateInputDisplay();
+      this.updateDateDisplay();
       this.recalculateAndDispatch();
     });
     this.ephemerisView.init();
@@ -110,12 +117,11 @@ class MoonSurveyorApp {
     // 底部時光機滑桿
     this.timelineSlider = new TimelineSlider('timeline-slider-root', (minutes) => {
       this.currentMinutes = minutes;
-      this.recalculateAndDispatch(false); // 僅更新即時天體位置，不重複取全日軌跡
+      this.recalculateAndDispatch(false);
     });
     this.timelineSlider.setMinutes(this.currentMinutes);
   }
 
-  // 設定頂部操作事件
   setupHeaderEvents() {
     // GPS 定位
     document.getElementById('btn-locate-gps')?.addEventListener('click', () => {
@@ -125,13 +131,13 @@ class MoonSurveyorApp {
     // 日期切換
     document.getElementById('btn-prev-day')?.addEventListener('click', () => {
       this.currentDate.setDate(this.currentDate.getDate() - 1);
-      this.updateDateInputDisplay();
+      this.updateDateDisplay();
       this.recalculateAndDispatch();
     });
 
     document.getElementById('btn-next-day')?.addEventListener('click', () => {
       this.currentDate.setDate(this.currentDate.getDate() + 1);
-      this.updateDateInputDisplay();
+      this.updateDateDisplay();
       this.recalculateAndDispatch();
     });
 
@@ -140,7 +146,7 @@ class MoonSurveyorApp {
       this.currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       this.currentMinutes = now.getHours() * 60 + now.getMinutes();
       this.timelineSlider.setMinutes(this.currentMinutes);
-      this.updateDateInputDisplay();
+      this.updateDateDisplay();
       this.recalculateAndDispatch();
     });
 
@@ -149,23 +155,14 @@ class MoonSurveyorApp {
       if (e.target.value) {
         const [y, m, d] = e.target.value.split('-').map(Number);
         this.currentDate = new Date(y, m - 1, d);
+        this.updateDateDisplay();
         this.recalculateAndDispatch();
-      }
-    });
-
-    // 關鍵字搜尋
-    const searchInput = document.getElementById('input-location-search');
-    searchInput.value = this.currentLocationName;
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        this.handleSearchLocation(searchInput.value);
       }
     });
   }
 
-  // 視圖 Tab 切換
   setupViewTabs() {
-    const tabs = document.querySelectorAll('.view-tab-btn');
+    const tabs = document.querySelectorAll('.view-tab-item');
     tabs.forEach((tab) => {
       tab.addEventListener('click', (e) => {
         const targetView = e.currentTarget.dataset.view;
@@ -180,9 +177,10 @@ class MoonSurveyorApp {
 
         this.activeView = targetView;
 
-        // 觸發對應視圖的大小重繪
+        // 視圖切換即刻觸發大小更新
         if (targetView === 'map' && this.mapView) {
           this.mapView.invalidateSize();
+          setTimeout(() => this.mapView.invalidateSize(), 150);
         } else if (targetView === 'compass' && this.compassView) {
           this.compassView.resize();
         } else if (targetView === 'ar' && this.arView) {
@@ -192,12 +190,20 @@ class MoonSurveyorApp {
     });
   }
 
-  // 下拉熱門景點與縣市選單
-  setupDropdownMenus() {
-    const menuBtn = document.getElementById('btn-toggle-spots-menu');
-    const menuDropdown = document.getElementById('dropdown-spots-menu');
+  setupLocationDrawer() {
+    const drawer = document.getElementById('drawer-location-search');
+    const openBtn = document.getElementById('btn-open-search');
+    const pillBtn = document.getElementById('btn-quick-location');
+    const closeBtn = document.getElementById('btn-close-drawer');
+    const searchInput = document.getElementById('input-location-search');
+    const searchSubmit = document.getElementById('btn-submit-search');
     const countyGrid = document.getElementById('county-buttons-grid');
     const spotsList = document.getElementById('spots-buttons-list');
+
+    const toggleDrawer = () => drawer?.classList.toggle('hidden');
+    openBtn?.addEventListener('click', toggleDrawer);
+    pillBtn?.addEventListener('click', toggleDrawer);
+    closeBtn?.addEventListener('click', () => drawer?.classList.add('hidden'));
 
     // 生成 22 縣市按鈕
     TAIWAN_COUNTIES.forEach((c) => {
@@ -206,9 +212,9 @@ class MoonSurveyorApp {
       btn.textContent = c.name;
       btn.addEventListener('click', () => {
         this.selectLocation(c.name, c.lat, c.lng, c.name);
-        menuDropdown.classList.add('hidden');
+        drawer?.classList.add('hidden');
       });
-      countyGrid.appendChild(btn);
+      countyGrid?.appendChild(btn);
     });
 
     // 生成熱門景點按鈕
@@ -221,20 +227,21 @@ class MoonSurveyorApp {
       `;
       btn.addEventListener('click', () => {
         this.selectLocation(s.name, s.lat, s.lng, s.county);
-        menuDropdown.classList.add('hidden');
+        drawer?.classList.add('hidden');
       });
-      spotsList.appendChild(btn);
+      spotsList?.appendChild(btn);
     });
 
-    menuBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menuDropdown.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
-        menuDropdown.classList.add('hidden');
+    const doSearch = () => {
+      if (searchInput?.value) {
+        this.handleSearchLocation(searchInput.value);
+        drawer?.classList.add('hidden');
       }
+    };
+
+    searchSubmit?.addEventListener('click', doSearch);
+    searchInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doSearch();
     });
   }
 
@@ -243,7 +250,7 @@ class MoonSurveyorApp {
     this.lng = lng;
     this.currentCounty = county;
     this.currentLocationName = name;
-    document.getElementById('input-location-search').value = name;
+    this.updateLocationPillText();
 
     if (this.mapView) {
       this.mapView.panTo(lat, lng, 14);
@@ -251,7 +258,11 @@ class MoonSurveyorApp {
     this.recalculateAndDispatch();
   }
 
-  // 取得目前 GPS 座標
+  updateLocationPillText() {
+    const el = document.getElementById('current-location-pill-text');
+    if (el) el.textContent = this.currentLocationName.split(' ')[0];
+  }
+
   locateCurrentGPS() {
     if (!navigator.geolocation) {
       this.showToast('您的瀏覽器不支援 GPS 定位');
@@ -259,7 +270,7 @@ class MoonSurveyorApp {
     }
 
     const gpsBtn = document.getElementById('btn-locate-gps');
-    if (gpsBtn) gpsBtn.innerHTML = '<span>⏳ 定位中...</span>';
+    if (gpsBtn) gpsBtn.textContent = '⏳';
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -268,30 +279,28 @@ class MoonSurveyorApp {
         this.lat = latitude;
         this.lng = longitude;
         this.currentCounty = nearest.name;
-        this.currentLocationName = `📍 目前位置 (${nearest.name})`;
-        document.getElementById('input-location-search').value = this.currentLocationName;
+        this.currentLocationName = `${nearest.name} (目前位置)`;
+        this.updateLocationPillText();
 
         if (this.mapView) {
           this.mapView.panTo(latitude, longitude, 15);
         }
-        if (gpsBtn) gpsBtn.innerHTML = '<span>📍 定位目前地點</span>';
+        if (gpsBtn) gpsBtn.textContent = '📍';
         this.showToast(`✅ 定位成功！經緯度: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         this.recalculateAndDispatch();
       },
       (err) => {
-        if (gpsBtn) gpsBtn.innerHTML = '<span>📍 定位目前地點</span>';
-        this.showToast('無法取得 GPS 權限，請確認手機已開啟定位');
+        if (gpsBtn) gpsBtn.textContent = '📍';
+        this.showToast('請確認手機已允許瀏覽器存取「定位權限」');
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   }
 
-  // 搜尋地點名稱 (支援 OpenStreetMap 臺灣即時地理編碼)
   async handleSearchLocation(query) {
     if (!query || !query.trim()) return;
     const q = query.trim();
 
-    // 1. 本地關鍵字比對
     const matchedCounty = TAIWAN_COUNTIES.find(c => c.name.includes(q));
     if (matchedCounty) {
       this.selectLocation(matchedCounty.name, matchedCounty.lat, matchedCounty.lng, matchedCounty.name);
@@ -304,7 +313,6 @@ class MoonSurveyorApp {
       return;
     }
 
-    // 2. 線上 OpenStreetMap Nominatim 搜尋
     this.showToast(`🔍 正在搜尋「${q}」...`);
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=tw&limit=1`;
@@ -318,16 +326,14 @@ class MoonSurveyorApp {
         this.selectLocation(item.display_name.split(',')[0], newLat, newLng, nearest.name);
         this.showToast(`✅ 已定位至「${item.display_name.split(',')[0]}」`);
       } else {
-        this.showToast(`未找到「${q}」，請嘗試其他名稱或點擊地圖自訂`);
+        this.showToast(`未找到「${q}」，請點選地圖直接標記`);
       }
     } catch (e) {
-      this.showToast('搜尋逾時，請直接點擊地圖標記地點');
+      this.showToast('搜尋逾時，請直接點選地圖標記');
     }
   }
 
-  // 計算並廣播更新至所有視圖
   recalculateAndDispatch(updateFullDay = true) {
-    // 組合精確日期與模擬時間
     const h = Math.floor(this.currentMinutes / 60);
     const m = this.currentMinutes % 60;
     const simTime = new Date(
@@ -339,25 +345,17 @@ class MoonSurveyorApp {
       0
     );
 
-    // 格式化 YYYY-MM-DD
     const dateStr = this.currentDate.toISOString().slice(0, 10);
-
-    // 1. 取得氣象署官方紀錄
     const cwaRecord = cwaUpdater.getCwaRecord(this.currentCounty, dateStr);
-
-    // 2. 取得高精度天文計算數據
     const ephemData = getEphemerisAt(simTime, this.lat, this.lng);
 
-    // 3. 取得全天 24H 日月天球軌跡 (若日期切換時)
     if (updateFullDay || !this.cachedTrajectories) {
       this.cachedTrajectories = getDayTrajectories(simTime, this.lat, this.lng);
-      // 更新時光軸標記
       if (this.timelineSlider) {
         this.timelineSlider.updateMarkers(ephemData, cwaRecord);
       }
     }
 
-    // 4. 更新地圖射線
     if (this.mapView) {
       this.mapView.updateRays({
         moonAz: ephemData.moon.azimuth,
@@ -370,63 +368,60 @@ class MoonSurveyorApp {
       });
     }
 
-    // 5. 更新羅盤視圖
     if (this.compassView) {
       this.compassView.update(ephemData, this.cachedTrajectories);
     }
 
-    // 6. 更新 AR 相機視圖
     if (this.arView) {
       this.arView.update(ephemData, this.cachedTrajectories);
     }
 
-    // 7. 更新星曆表與月相視圖
     if (this.ephemerisView) {
       this.ephemerisView.update(ephemData, cwaRecord, this.currentCounty);
     }
 
-    // 8. 更新底部時光軸數據標籤
     if (this.timelineSlider) {
       this.timelineSlider.updateStatusChips(ephemData);
     }
   }
 
-  updateDateInputDisplay() {
+  updateDateDisplay() {
+    const y = this.currentDate.getFullYear();
+    const m = String(this.currentDate.getMonth() + 1).padStart(2, '0');
+    const d = String(this.currentDate.getDate()).padStart(2, '0');
+    
+    const textEl = document.getElementById('date-display-text');
+    if (textEl) textEl.textContent = `${y}/${m}/${d}`;
+
     const input = document.getElementById('input-date-picker');
-    if (input) {
-      const y = this.currentDate.getFullYear();
-      const m = String(this.currentDate.getMonth() + 1).padStart(2, '0');
-      const d = String(this.currentDate.getDate()).padStart(2, '0');
-      input.value = `${y}-${m}-${d}`;
-    }
+    if (input) input.value = `${y}-${m}-${d}`;
   }
 
   setupModalEvents() {
     const modal = document.getElementById('modal-info');
     document.getElementById('btn-open-info')?.addEventListener('click', () => {
-      modal.classList.remove('hidden');
+      modal?.classList.remove('hidden');
     });
     document.getElementById('btn-close-modal')?.addEventListener('click', () => {
-      modal.classList.add('hidden');
+      modal?.classList.add('hidden');
     });
     modal?.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.add('hidden');
     });
 
-    // 手動同步按鈕
     const syncBtn = document.getElementById('btn-manual-sync-cwa');
     const syncMsg = document.getElementById('manual-sync-status');
     syncBtn?.addEventListener('click', async () => {
       syncBtn.disabled = true;
       syncBtn.textContent = '⏳ 正在連線氣象署伺服器...';
-      syncMsg.textContent = '連線中，請稍候...';
+      if (syncMsg) syncMsg.textContent = '連線中，請稍候...';
 
       try {
         await cwaUpdater.checkAndAutoUpdate();
-        syncMsg.textContent = '✅ 已完成氣象署資料集檢查與同步！';
+        if (syncMsg) syncMsg.textContent = '✅ 已完成氣象署資料集檢查與同步！';
         this.recalculateAndDispatch();
       } catch (e) {
-        syncMsg.textContent = '連線完成，已載入最新有效版本。';
+        if (syncMsg) syncMsg.textContent = '連線完成，已載入最新有效版本。';
       } finally {
         syncBtn.disabled = false;
         syncBtn.textContent = '立即檢查並同步最新氣象署資料';
@@ -441,15 +436,15 @@ class MoonSurveyorApp {
       toast.id = 'app-toast';
       toast.style.cssText = `
         position: fixed;
-        top: 70px;
+        top: 60px;
         left: 50%;
         transform: translateX(-50%);
         background: rgba(15, 23, 42, 0.95);
         color: #fff;
         border: 1px solid rgba(56, 189, 248, 0.4);
-        padding: 8px 16px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         z-index: 99999;
         box-shadow: 0 4px 16px rgba(0,0,0,0.6);
         pointer-events: none;
@@ -465,7 +460,6 @@ class MoonSurveyorApp {
     }, 2800);
   }
 
-  // 註冊 PWA Service Worker (支援離線運算)
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -476,7 +470,6 @@ class MoonSurveyorApp {
   }
 }
 
-// 啟動 App
 window.addEventListener('DOMContentLoaded', () => {
   const app = new MoonSurveyorApp();
   app.init();

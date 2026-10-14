@@ -2,15 +2,17 @@
   "name": "月相測量師 Moon Surveyor Pro",
   "short_name": "月相測量師",
   "description": "專業級手機端天文光影與月出月沒追蹤 Web App，整合交通部中央氣象署 75381 開放資料",
-  "start_url": "/",
+  "id": "/moon_surveyor/",
+  "start_url": "/moon_surveyor/",
+  "scope": "/moon_surveyor/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#060911",
   "theme_color": "#090d16",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
+      "src": "./icon.svg",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }

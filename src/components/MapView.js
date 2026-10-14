@@ -1,6 +1,7 @@
 /**
  * 互動地圖模式 (Interactive Map View)
- * 呈現日月方位角射線、月出月沒方向、自訂觀測點與衛星/天文圖磚
+ * 整合高畫質 ESRI 免費圖磚（暗夜天文含標註、衛星空照含標註、地形街道）
+ * 繪製月出、月沒、即時月球與太陽方位角射線
  */
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -16,7 +17,7 @@ export class MapView {
     // 射線圖層組
     this.raysLayer = L.layerGroup();
 
-    // 觀測點座標
+    // 觀測點座標 (預設台北市信義區)
     this.lat = 25.0375;
     this.lng = 121.5637;
 
@@ -39,28 +40,36 @@ export class MapView {
       attributionControl: false
     });
 
-    // 預設底圖: ESRI World Dark Gray Canvas (免 API Key，專業暗夜天文灰色底圖)
-    this.tileLayers.dark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 16,
-      attribution: 'Esri, HERE, DeLorme, MapmyIndia'
-    });
+    // 1. 暗夜天文底圖 (ESRI World Dark Gray Base + Reference 道路地名標註)
+    this.tileLayers.dark = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16
+      }),
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16
+      })
+    ]);
 
-    // 衛星影像底圖: ESRI World Imagery (真實地形空照)
-    this.tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18,
-      attribution: 'Esri, Maxar, Earthstar Geographics'
-    });
+    // 2. 衛星空照底圖 (ESRI World Imagery + 邊界地名)
+    this.tileLayers.satellite = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18
+      }),
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18
+      })
+    ]);
 
-    // 標準街道圖: ESRI World Street Map (免 API Key 道路與地名圖)
+    // 3. 標準街道底圖 (ESRI World Street Map)
     this.tileLayers.streets = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18,
-      attribution: 'Esri, HERE, Garmin, USGS'
+      maxZoom: 18
     });
 
+    // 預設載入暗夜天文圖層與射線圖層
     this.tileLayers.dark.addTo(this.map);
     this.raysLayer.addTo(this.map);
 
-    // 建立可拖曳的觀測者標記
+    // 建立可拖曳的觀測者標記與半徑環
     this.createObserverMarker();
 
     // 點擊地圖任意處直接移動觀測點
@@ -68,10 +77,12 @@ export class MapView {
       this.setObserverLocation(e.latlng.lat, e.latlng.lng, true);
     });
 
-    // 視窗 resize 自適應
-    setTimeout(() => {
-      this.map.invalidateSize();
-    }, 200);
+    // 多階段自適應重繪 (防止 iOS Safari 尺寸計算延遲)
+    this.invalidateSize();
+    setTimeout(() => this.invalidateSize(), 150);
+    setTimeout(() => this.invalidateSize(), 500);
+    window.addEventListener('resize', () => this.invalidateSize());
+    window.addEventListener('orientationchange', () => setTimeout(() => this.invalidateSize(), 200));
   }
 
   createObserverMarker() {
@@ -93,11 +104,11 @@ export class MapView {
 
     this.radiusCircle = L.circle([this.lat, this.lng], {
       radius: 1200,
-      color: 'rgba(255, 215, 0, 0.25)',
-      fillColor: 'rgba(255, 215, 0, 0.05)',
+      color: 'rgba(255, 215, 0, 0.4)',
+      fillColor: 'rgba(255, 215, 0, 0.08)',
       fillOpacity: 0.15,
-      weight: 1,
-      dashArray: '4, 4'
+      weight: 1.5,
+      dashArray: '5, 5'
     }).addTo(this.map);
 
     this.observerMarker.on('dragend', (e) => {
@@ -106,7 +117,6 @@ export class MapView {
     });
   }
 
-  // 設定觀測點位置
   setObserverLocation(lat, lng, triggerCallback = false) {
     this.lat = lat;
     this.lng = lng;
@@ -123,17 +133,16 @@ export class MapView {
     }
   }
 
-  // 平滑飛至該座標
   panTo(lat, lng, zoom = 14) {
     this.setObserverLocation(lat, lng, false);
     if (this.map) {
       this.map.flyTo([lat, lng], zoom, { duration: 0.8 });
+      setTimeout(() => this.invalidateSize(), 850);
     }
   }
 
-  // 切換底圖 (dark / satellite / streets)
   switchTile(key) {
-    if (this.currentTileKey === key || !this.tileLayers[key]) return;
+    if (this.currentTileKey === key || !this.tileLayers[key] || !this.map) return;
     this.map.removeLayer(this.tileLayers[this.currentTileKey]);
     this.tileLayers[key].addTo(this.map);
     this.currentTileKey = key;
@@ -142,9 +151,8 @@ export class MapView {
     }
   }
 
-  // 根據方位角計算終點座標 (延伸距離公尺)
   calculateDestinationPoint(lat, lng, azimuthDeg, distanceMeters = 3500) {
-    const R = 6371e3; // 地球半徑
+    const R = 6371e3;
     const brng = (azimuthDeg * Math.PI) / 180;
     const phi1 = (lat * Math.PI) / 180;
     const lambda1 = (lng * Math.PI) / 180;
@@ -158,99 +166,85 @@ export class MapView {
       Math.cos(distanceMeters / R) - Math.sin(phi1) * Math.sin(phi2)
     );
 
-    return [ (phi2 * 180) / Math.PI, (lambda2 * 180) / Math.PI ];
+    return [(phi2 * 180) / Math.PI, (lambda2 * 180) / Math.PI];
   }
 
-  /**
-   * 繪製天文方位光線 (時光軸拖動時毫秒級重繪)
-   */
   updateRays({ moonAz, moonAlt, sunAz, sunAlt, moonRiseAz, moonSetAz, officialRecord }) {
     if (!this.map) return;
 
     this.raysLayer.clearLayers();
 
     const origin = [this.lat, this.lng];
-    const rayDist = 4500; // 射線長度 4.5 公里
+    const rayDist = 4500;
 
-    // 1. 月出方位線 (金黃色粗線)
+    // 1. 月出方位線 (金黃色虛線)
     const riseAz = officialRecord?.riseAz ?? moonRiseAz;
-    if (riseAz !== null && riseAz !== undefined) {
+    if (riseAz !== null && riseAz !== undefined && !isNaN(riseAz)) {
       const riseEnd = this.calculateDestinationPoint(this.lat, this.lng, riseAz, rayDist);
       const riseLine = L.polyline([origin, riseEnd], {
         color: '#f6c343',
-        weight: 3,
-        opacity: 0.85,
+        weight: 3.5,
+        opacity: 0.9,
         dashArray: '6, 6'
       });
-      riseLine.bindTooltip(`🌕 月出方位: ${riseAz.toFixed(1)}° (${officialRecord?.rise || '當日'})`, {
+      riseLine.bindTooltip(`🌕 月出: ${riseAz.toFixed(1)}° (${officialRecord?.rise || '當日'})`, {
         permanent: false,
         className: 'map-ray-tooltip ray-rise-tooltip'
       });
       this.raysLayer.addLayer(riseLine);
     }
 
-    // 2. 月沒方位線 (橙紅色線)
+    // 2. 月沒方位線 (橙紅色虛線)
     const setAz = officialRecord?.setAz ?? moonSetAz;
-    if (setAz !== null && setAz !== undefined) {
+    if (setAz !== null && setAz !== undefined && !isNaN(setAz)) {
       const setEnd = this.calculateDestinationPoint(this.lat, this.lng, setAz, rayDist);
       const setLine = L.polyline([origin, setEnd], {
-        color: '#f06548',
-        weight: 3,
-        opacity: 0.85,
+        color: '#f43f5e',
+        weight: 3.5,
+        opacity: 0.9,
         dashArray: '6, 6'
       });
-      setLine.bindTooltip(`🌘 月沒方位: ${setAz.toFixed(1)}° (${officialRecord?.set || '當日'})`, {
+      setLine.bindTooltip(`🌘 月沒: ${setAz.toFixed(1)}° (${officialRecord?.set || '當日'})`, {
         permanent: false,
         className: 'map-ray-tooltip ray-set-tooltip'
       });
       this.raysLayer.addLayer(setLine);
     }
 
-    // 3. 即時太陽方位線 (熾暖琥珀金)
-    if (sunAz !== undefined && sunAz !== null) {
+    // 3. 即時太陽方位線 (琥珀金色)
+    if (sunAz !== undefined && sunAz !== null && !isNaN(sunAz)) {
       const sunEnd = this.calculateDestinationPoint(this.lat, this.lng, sunAz, rayDist);
-      const sunOpacity = sunAlt > 0 ? 0.95 : 0.35;
+      const sunOpacity = sunAlt > 0 ? 0.95 : 0.4;
       const sunLine = L.polyline([origin, sunEnd], {
-        color: '#ff9800',
+        color: '#f59e0b',
         weight: sunAlt > 0 ? 3.5 : 2,
         opacity: sunOpacity
       });
-      sunLine.bindTooltip(`☀️ 太陽: ${sunAz.toFixed(1)}° (仰角 ${sunAlt.toFixed(1)}°)`, {
-        permanent: false,
-        className: 'map-ray-tooltip ray-sun-tooltip'
-      });
       this.raysLayer.addLayer(sunLine);
 
-      // 太陽末端標記
       const sunIcon = L.divIcon({
         className: 'celestial-ray-icon sun-ray-icon',
         html: `<div class="ray-tag sun-tag">${sunAlt > 0 ? '☀️' : '🌅'} ${sunAlt.toFixed(0)}°</div>`,
-        iconSize: [40, 24]
+        iconSize: [44, 22]
       });
       this.raysLayer.addLayer(L.marker(sunEnd, { icon: sunIcon, interactive: false }));
     }
 
-    // 4. 即時月球方位線 (夜光青銀色光束)
-    if (moonAz !== undefined && moonAz !== null) {
+    // 4. 即時月球方位線 (青銀色光芒)
+    if (moonAz !== undefined && moonAz !== null && !isNaN(moonAz)) {
       const moonEnd = this.calculateDestinationPoint(this.lat, this.lng, moonAz, rayDist);
-      const moonOpacity = moonAlt > 0 ? 0.95 : 0.4;
+      const moonOpacity = moonAlt > 0 ? 1.0 : 0.45;
       const moonLine = L.polyline([origin, moonEnd], {
         color: '#38bdf8',
-        weight: moonAlt > 0 ? 4 : 2,
+        weight: moonAlt > 0 ? 4 : 2.5,
         opacity: moonOpacity
-      });
-      moonLine.bindTooltip(`🌙 月球: ${moonAz.toFixed(1)}° (仰角 ${moonAlt.toFixed(1)}°)`, {
-        permanent: true,
-        direction: 'top',
-        className: 'map-ray-tooltip ray-moon-tooltip'
       });
       this.raysLayer.addLayer(moonLine);
 
-      // 月球末端標記
       const moonIcon = L.divIcon({
         className: 'celestial-ray-icon moon-ray-icon',
         html: `<div class="ray-tag moon-tag">🌙 ${moonAlt.toFixed(0)}°</div>`,
-        iconSize: [40, 24]
+        iconSize: [44, 22]
       });
       this.raysLayer.addLayer(L.marker(moonEnd, { icon: moonIcon, interactive: false }));
     }

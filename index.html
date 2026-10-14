@@ -3,115 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- Apple iOS PWA 獨立視窗與主畫面設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="月相測量師">
-  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" content="#060911">
   <meta name="description" content="專業級手機端天文光影與月出月沒追蹤 Web App，整合交通部中央氣象署 75381 開放資料與高精度天文演算法。">
 
-  <title>月相測量師 Moon Surveyor | 臺灣月出月沒與天文光影</title>
+  <title>月相測量師 Moon Surveyor Pro</title>
   
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
   <div id="app" class="app-root">
-    <!-- 頂部導航與地點/日期工具列 -->
+    <!-- 頂部精簡雙層工具列 (專為手機防遮擋設計) -->
     <header class="app-header">
-      <div class="header-top-row">
-        <div class="brand-group">
-          <div class="brand-icon">🌕</div>
-          <div class="brand-text">
-            <h1 class="brand-title">月相測量師 <span class="brand-badge">PRO</span></h1>
-            <span class="brand-subtitle">中央氣象署 75381 官方資料 ✦ 天文星曆</span>
-          </div>
-        </div>
-
-        <div class="header-actions">
-          <div id="sync-status-indicator" class="sync-badge" title="每年自動連線氣象署更新">
-            <span class="sync-dot"></span>
-            <span id="sync-status-text">官方資料已同步</span>
-          </div>
-          <button id="btn-open-info" class="icon-btn-circle" title="資料集說明與更新設定">ℹ️</button>
-        </div>
-      </div>
-
-      <!-- 地點與日期操作卡片 -->
-      <div class="header-controls-card">
-        <!-- 地點選擇欄 -->
-        <div class="location-bar">
-          <button id="btn-locate-gps" class="gps-locate-btn" title="一鍵取得目前 GPS 座標">
-            <span class="gps-icon">📍</span> <span class="gps-text">定位目前地點</span>
-          </button>
-
-          <div class="location-search-wrapper">
-            <input 
-              type="text" 
-              id="input-location-search" 
-              placeholder="搜尋地點、縣市或景點..." 
-              autocomplete="off"
-            />
-            <button id="btn-toggle-spots-menu" class="spots-picker-btn" title="選擇臺灣熱門攝影景點">
-              全臺景點 ▾
+      <!-- 第一列：品牌、當前地點標籤與日期快選 -->
+      <div class="header-main-bar">
+        <div class="brand-left-group">
+          <span class="brand-icon">🌕</span>
+          <div class="brand-info">
+            <h1 class="brand-name">月相測量師</h1>
+            <button id="btn-quick-location" class="location-badge-pill" title="點擊更換地點或搜尋">
+              📍 <span id="current-location-pill-text">臺北市</span> ▾
             </button>
-            <!-- 下拉熱門選單 -->
-            <div id="dropdown-spots-menu" class="dropdown-menu-card hidden">
-              <div class="dropdown-section-title">22 縣市代表中心</div>
-              <div id="county-buttons-grid" class="county-chips-grid"></div>
-              <div class="dropdown-section-title" style="margin-top: 10px;">🌟 熱門攝影與觀星聖地</div>
-              <div id="spots-buttons-list" class="spots-list-box"></div>
-            </div>
           </div>
         </div>
 
-        <!-- 日期導航欄 -->
-        <div class="date-bar">
-          <button id="btn-prev-day" class="date-nav-btn" title="前一天">◀ 前一日</button>
-          <div class="date-picker-box">
-            <input type="date" id="input-date-picker" />
+        <div class="header-right-tools">
+          <!-- 迷你日期導航 -->
+          <div class="date-stepper-box">
+            <button id="btn-prev-day" class="stepper-arrow-btn" title="前一天">◀</button>
+            <label class="date-picker-label" title="點擊選取日期">
+              <span id="date-display-text">2026/10/14</span>
+              <input type="date" id="input-date-picker" class="hidden-date-input" />
+            </label>
+            <button id="btn-next-day" class="stepper-arrow-btn" title="後一天">▶</button>
+            <button id="btn-today" class="stepper-today-btn" title="回到今天">今</button>
           </div>
-          <button id="btn-next-day" class="date-nav-btn" title="後一天">後一日 ▶</button>
-          <button id="btn-today" class="date-today-btn">今日</button>
+
+          <!-- 功能快捷鈕 -->
+          <button id="btn-locate-gps" class="tool-circle-btn" title="目前 GPS 定位">📍</button>
+          <button id="btn-open-search" class="tool-circle-btn" title="搜尋地點與全臺景點">🔍</button>
+          <button id="btn-open-info" class="tool-circle-btn" title="系統說明與更新">ℹ️</button>
         </div>
       </div>
 
-      <!-- 視圖切換標籤列 (4 大專業模式) -->
-      <nav class="view-tabs-nav">
-        <button id="tab-btn-map" class="view-tab-btn active" data-view="map">
-          <span class="tab-icon">🗺️</span> 互動地圖
+      <!-- 第二列：四大視圖切換標籤列 -->
+      <nav class="view-tabs-bar">
+        <button id="tab-btn-map" class="view-tab-item active" data-view="map">
+          🗺️ 互動地圖
         </button>
-        <button id="tab-btn-compass" class="view-tab-btn" data-view="compass">
-          <span class="tab-icon">🧭</span> 天文羅盤
+        <button id="tab-btn-compass" class="view-tab-item" data-view="compass">
+          🧭 天文羅盤
         </button>
-        <button id="tab-btn-ar" class="view-tab-btn" data-view="ar">
-          <span class="tab-icon">📷</span> AR 實景
+        <button id="tab-btn-ar" class="view-tab-item" data-view="ar">
+          📷 AR 實景
         </button>
-        <button id="tab-btn-ephemeris" class="view-tab-btn" data-view="ephemeris">
-          <span class="tab-icon">📊</span> 星曆與月相
+        <button id="tab-btn-ephemeris" class="view-tab-item" data-view="ephemeris">
+          📊 星曆與月相
         </button>
       </nav>
     </header>
 
-    <!-- 主體內容視圖容器 -->
+    <!-- 地點搜尋與全臺熱門景點抽屜 (預設收折) -->
+    <div id="drawer-location-search" class="location-drawer hidden">
+      <div class="drawer-header">
+        <h3>📍 選擇觀測點或搜尋地點</h3>
+        <button id="btn-close-drawer" class="drawer-close-btn">✕</button>
+      </div>
+      <div class="drawer-search-row">
+        <input 
+          type="text" 
+          id="input-location-search" 
+          placeholder="輸入地點關鍵字 (如：象山、武嶺)..." 
+          autocomplete="off"
+        />
+        <button id="btn-submit-search" class="drawer-search-btn">搜尋</button>
+      </div>
+      <div class="drawer-scroll-content">
+        <div class="drawer-section-title">全臺 22 縣市代表中心</div>
+        <div id="county-buttons-grid" class="county-chips-grid"></div>
+        <div class="drawer-section-title" style="margin-top: 12px;">🌟 熱門攝影觀星名勝</div>
+        <div id="spots-buttons-list" class="spots-list-box"></div>
+      </div>
+    </div>
+
+    <!-- 主體內容視圖容器 (填滿中間剩餘空間，徹底消除重疊) -->
     <main class="app-main-viewport">
       <!-- 1. 互動地圖視圖 -->
       <div id="view-map" class="view-container active">
         <div id="leaflet-map-container" class="map-full-frame"></div>
-        <!-- 地圖浮動控制小工具 -->
-        <div class="map-floating-toolbar">
-          <div class="map-layer-switcher">
-            <button class="layer-pill-btn active" data-layer="dark">暗夜天文</button>
-            <button class="layer-pill-btn" data-layer="satellite">衛星空照</button>
-            <button class="layer-pill-btn" data-layer="streets">地形街道</button>
-          </div>
-          <div class="map-legend-card">
-            <div class="legend-item"><span class="legend-color ray-color-rise"></span> 月出方位</div>
-            <div class="legend-item"><span class="legend-color ray-color-set"></span> 月沒方位</div>
-            <div class="legend-item"><span class="legend-color ray-color-moon"></span> 即時月球</div>
-            <div class="legend-item"><span class="legend-color ray-color-sun"></span> 即時太陽</div>
+        
+        <!-- 地圖圖層切換膠囊 (右上角小巧懸浮) -->
+        <div class="map-layer-dock">
+          <button class="layer-tab-btn active" data-layer="dark">暗夜</button>
+          <button class="layer-tab-btn" data-layer="satellite">衛星</button>
+          <button class="layer-tab-btn" data-layer="streets">街道</button>
+        </div>
+
+        <!-- 摺疊式圖例小工具 (左下角，點擊展開) -->
+        <div class="map-legend-dock">
+          <button id="btn-toggle-legend" class="legend-pill-btn">🏷️ 射線圖例</button>
+          <div id="map-legend-popover" class="legend-popover hidden">
+            <div class="legend-row"><span class="legend-indicator ray-color-rise"></span> 🌕 月出方位角</div>
+            <div class="legend-row"><span class="legend-indicator ray-color-set"></span> 🌘 月沒方位角</div>
+            <div class="legend-row"><span class="legend-indicator ray-color-moon"></span> 🌙 即時月球位置</div>
+            <div class="legend-row"><span class="legend-indicator ray-color-sun"></span> ☀️ 即時太陽位置</div>
           </div>
         </div>
       </div>
@@ -124,7 +130,7 @@
             <button id="btn-toggle-compass-sensor" class="glass-pill-btn">
               📱 啟用手機指南針
             </button>
-            <span class="compass-hint-text">可單指滑動旋轉羅盤盤面</span>
+            <span class="compass-hint-text">單指觸控可手動旋轉天球</span>
           </div>
         </div>
       </div>
@@ -145,7 +151,7 @@
       <div id="timeline-slider-root"></div>
     </footer>
 
-    <!-- 資料集說明與手動更新彈出視窗 (Modal) -->
+    <!-- 資料集說明與手動更新彈出視窗 -->
     <div id="modal-info" class="modal-backdrop hidden">
       <div class="modal-card">
         <div class="modal-header">
@@ -153,8 +159,8 @@
           <button id="btn-close-modal" class="modal-close-btn">✕</button>
         </div>
         <div class="modal-body">
-          <h4>📌 資料集來源</h4>
-          <p>本系統無縫整合中華民國<b>交通部中央氣象署</b>於政府資料開放平臺所發布之<b>「月出月沒時刻」（代號：A-B0063-001 / ID: 75381）</b>，涵蓋全臺 22 縣市每年每日的月出、過中天、月沒與方位角資料。</p>
+          <h4>📌 資料來源</h4>
+          <p>本系統整合中華民國<b>交通部中央氣象署</b>於政府資料開放平臺所發布之<b>「月出月沒時刻」（A-B0063-001 / ID: 75381）</b>，涵蓋全臺 22 縣市每年每日的月出、過中天、月沒與方位角資料。</p>
           
           <h4>⚡ 自動更新機制說明</h4>
           <ul>
@@ -163,7 +169,6 @@
           </ul>
 
           <h4>🔄 手動觸發更新</h4>
-          <p>您也可以隨時點擊下方按鈕，強制從中央氣象署伺服器下載最新年度數據：</p>
           <button id="btn-manual-sync-cwa" class="primary-gradient-btn">
             立即檢查並同步最新氣象署資料
           </button>
@@ -173,6 +178,6 @@
     </div>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
