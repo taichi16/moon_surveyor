@@ -399,14 +399,19 @@ class MoonSurveyorApp {
 
   setupModalEvents() {
     const modal = document.getElementById('modal-info');
+    const closeModal = () => modal?.classList.add('hidden');
+
     document.getElementById('btn-open-info')?.addEventListener('click', () => {
       modal?.classList.remove('hidden');
     });
-    document.getElementById('btn-close-modal')?.addEventListener('click', () => {
-      modal?.classList.add('hidden');
-    });
+    document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
+    document.getElementById('btn-modal-dismiss')?.addEventListener('click', closeModal);
+
     modal?.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.add('hidden');
+      if (e.target === modal) closeModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) closeModal();
     });
 
     const syncBtn = document.getElementById('btn-manual-sync-cwa');
