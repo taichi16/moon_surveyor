@@ -1017,119 +1017,147 @@ html, body {
 }
 
 /* ============================================================
-   彈出視窗 (Modal)
+   彈出視窗 (Modal) - 專為手機 Safe Area 與固定標頭/頁尾設計
    ============================================================ */
 .modal-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  z-index: 9999;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top, 24px)) 12px max(16px, env(safe-area-inset-bottom, 24px));
+  box-sizing: border-box;
 }
 
-.modal-backdrop.hidden { display: none; }
+.modal-backdrop.hidden { display: none !important; }
 
 .modal-card {
   background: #0f172a;
   border: 1px solid var(--border-glass-hover);
-  border-radius: 14px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 460px;
-  max-height: 85vh;
+  max-width: 480px;
+  max-height: calc(100dvh - env(safe-area-inset-top, 28px) - env(safe-area-inset-bottom, 28px) - 24px);
+  height: 90vh;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+  overflow: hidden; /* 保證 header 與 footer 永遠固定，不隨內文滾出視窗 */
 }
 
+/* 固定於頂部的標頭 */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-glass);
-  padding-bottom: 10px;
-  margin-bottom: 12px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 16px;
   flex-shrink: 0;
+  z-index: 10;
 }
 
-.modal-header h3 { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.modal-header h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+/* 超醒目紅色關閉按鈕，確保手機上一眼能看到且極易點擊 */
 .modal-close-btn {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #f8fafc;
-  font-size: 0.8rem;
-  font-weight: 600;
+  background: #ef4444;
+  border: none;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   touch-action: manipulation;
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.45);
+  transition: transform 0.15s, background 0.15s;
 }
-.modal-close-btn:hover, .modal-close-btn:active {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: #fff;
+.modal-close-btn:active {
+  background: #dc2626;
+  transform: scale(0.95);
 }
 
-.modal-body { font-size: 0.82rem; color: #cbd5e1; line-height: 1.6; }
-.modal-scroll-body {
+/* 僅中間內容區塊滾動 (關鍵: flex: 1 1 auto + min-height: 0) */
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-right: 6px;
+  overscroll-behavior: contain;
+  padding: 16px;
+  font-size: 0.84rem;
+  color: #cbd5e1;
+  line-height: 1.6;
 }
-.modal-body h4 { color: #38bdf8; margin: 14px 0 6px; font-size: 0.88rem; font-weight: 600; }
+.modal-body h4 { color: #38bdf8; margin: 14px 0 6px; font-size: 0.9rem; font-weight: 600; }
+.modal-body h4:first-child { margin-top: 0; }
 .modal-body ul { padding-left: 18px; margin-bottom: 12px; }
 .modal-body li { margin-bottom: 6px; }
 
+/* 固定於底部的頁尾 */
 .modal-footer {
-  border-top: 1px solid var(--border-glass);
-  padding-top: 12px;
-  margin-top: 8px;
+  background: #1e293b;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 12px 16px;
   flex-shrink: 0;
+  z-index: 10;
 }
 .modal-dismiss-btn {
   width: 100%;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
-  padding: 10px;
-  font-size: 0.88rem;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  border: none;
+  color: #fff;
+  padding: 12px;
+  font-size: 0.92rem;
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   touch-action: manipulation;
-  transition: all 0.2s ease;
+  transition: opacity 0.15s, transform 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
 }
-.modal-dismiss-btn:hover, .modal-dismiss-btn:active {
-  background: #0284c7;
-  color: #fff;
-  border-color: #0284c7;
+.modal-dismiss-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
 }
 
 .primary-gradient-btn {
   width: 100%;
   margin-top: 8px;
-  background: linear-gradient(135deg, #0284c7, #38bdf8);
-  border: none;
-  color: #fff;
-  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 10px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+.primary-gradient-btn:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 .sync-msg-box { margin-top: 6px; font-size: 0.72rem; text-align: center; }
